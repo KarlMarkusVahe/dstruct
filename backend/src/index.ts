@@ -13,7 +13,7 @@ dotenv.config();
 const app = express();
 
 // initialize cors
-const whitelisted_ips = ['http://localhost:3000', 'http://localhost:3000/'];
+const whitelisted_ips = ['http://localhost:8080', 'http://localhost:8080/'];
 const cors_options = {
     origin: whitelisted_ips,
     credentials: true

@@ -10,6 +10,7 @@ const router = Router();
 
 // todo: server reset = verifiedQueue wiped fix (file, db)
 const verifiedQueue = new Map<number, { token: string, expiration: Date }>();
+const active_users = new Map<number, { username: string, picture: string}>();
 
 async function clearExpiredTokens() {
     setTimeout(() => {
@@ -256,10 +257,13 @@ router.post('/sessions', async (req: Request, res: Response) => {
         }
 
         // active_users table can later be used to stop double login-s
-        const sql_update_active_user_query = 'INSERT IGNORE INTO active_users (uid, username) VALUES (?, ?);';
-        await connection.query(sql_update_active_user_query, [user.uid, user.username]);
+        active_users.set(user.uid, { username: user.username, picture: user.picture });
 
-        return res.status(202).json({ message: 'Logged in.', data: user });
+        return res.status(202).json({ message: 'Logged in.', data: {
+                uid: user.uid,
+                username: user.username,
+                picture: user.picture
+            }});
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -372,7 +376,11 @@ router.get('/sessions', async (req: Request, res: Response) => {
             return;
         }
 
-        return res.status(200).json({ message: 'Success.', data: session });
+        return res.status(200).json({ message: 'Success.', data: {
+                uid: session.uid,
+                username: session.username,
+                picture: session.picture
+            }});
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -391,16 +399,15 @@ router.delete('/sessions', async (req: Request, res: Response) => {
     try {
         connection = await pool.getConnection();
 
-        const userId = req.session.user.uid;
+        if(req.session.user) {
+            await active_users.delete(req.session.user.uid);
+        }
+
         req.session.destroy( async(error) => {
            if(error) {
                res.status(500).json({ message: 'Failed to destroy session.' });
                return;
            }
-
-           // todo: remove active status of user
-           const sql = 'DELETE FROM active_users WHERE uid=?';
-           await connection.query(sql, [userId]);
 
            return res.status(200).json({ message: 'Session destroyed.' });
         });
