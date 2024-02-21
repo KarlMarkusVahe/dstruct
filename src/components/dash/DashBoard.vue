@@ -1,10 +1,6 @@
 <template>
   <div>
-    <main>
-      <h1>Welcome to the DashBoard!</h1>
-    </main>
 
-    <li><button @click="logout">Logout</button></li>
   </div>
 </template>
 
@@ -34,36 +30,5 @@ export default {
 </script>
 
 <style scoped>
-nav {
-  background-color: #333;
-  color: white;
-  padding: 10px;
-}
 
-ul {
-  list-style-type: none;
-  margin: 0;
-  padding: 0;
-}
-
-li {
-  display: inline;
-  margin-right: 10px;
-}
-
-button {
-  background-color: #ff0000;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #cc0000;
-}
 </style>

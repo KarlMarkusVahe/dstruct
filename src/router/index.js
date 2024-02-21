@@ -5,7 +5,7 @@ import HomePage from "@/components/HomePage.vue";
 import DashBoard from "@/components/dash/DashBoard.vue";
 
 const routes = [
-    { path: '/', component: HomePage },
+    { path: '/', component: HomePage, meta: { requiresAuth: true } },
     { path: '/login', component: WebLogin, meta: { requiresAuth: false } },
     //{ path: '/signup', component: Signup, meta: { requiresAuth: false } },
     { path: '/dashboard', component: DashBoard, meta: { requiresAuth: true } },

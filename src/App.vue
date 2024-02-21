@@ -1,7 +1,5 @@
 <template>
-    <div class="container mt-4">
-      <router-view></router-view>
-    </div>
+  <router-view></router-view>
 </template>
 
 <script>
@@ -14,21 +12,30 @@ export default {
 <style>
 @import url('https://fonts.googleapis.com/css?family=Montserrat&display=swap');
 
+:root {
+  --bg: #111111; /* Background color */
+  --icons: #5109ac; /* Icon color */
+  --input-text: #FFFFFF; /* Input text color */
+  --active-input: #212021; /* Active input background color */
+  --inactive-input: #171717; /* Inactive input background color */
+  --label: #363636; /* Label text color */
+  --button-active: #5c05cb;
+}
+
 ::before, ::after, * {
   padding: 0;
   margin: 0;
   box-sizing: border-box;
 }
 
-body {
+html, body {
   font-family: 'Montserrat', sans-serif;
+  height: 100vh;
+  width: 100vw;
 }
 
 #app {
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: rgb(20, 20, 20);
+  height: inherit;
+  width: inherit;
 }
 </style>

@@ -4,7 +4,7 @@ import { axiosPlugin } from "@/plugins/axios";
 import Store from '@/store';
 import Router from '@/router';
 
-import 'bootstrap/dist/css/bootstrap.min.css';
+import LoadScript from "vue-plugin-load-script";
 
 const app = createApp(App);
 
@@ -12,5 +12,6 @@ const app = createApp(App);
 app.use(axiosPlugin);
 app.use(Store);
 app.use(Router);
+app.use(LoadScript);
 
 app.mount('#app');

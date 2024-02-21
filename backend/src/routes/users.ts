@@ -10,7 +10,7 @@ const router = Router();
 
 // todo: server reset = verifiedQueue wiped fix (file, db)
 const verifiedQueue = new Map<number, { token: string, expiration: Date }>();
-const active_users = new Map<number, { username: string, picture: string}>();
+const active_users = new Map<number, { email: string, picture: string}>();
 
 async function clearExpiredTokens() {
     setTimeout(() => {
@@ -40,7 +40,7 @@ router.get('/users', async (req: Request, res: Response) => {
             return;
         }
 
-        const sql_query = 'SELECT username, picture FROM users WHERE (SELECT uid FROM active_users);';
+        const sql_query = 'SELECT email, picture FROM users WHERE (SELECT uid FROM active_users);';
         const [rows] = await connection.query(sql_query);
 
         return res.status(200).json({ message: 'Success.', data: rows });
@@ -174,12 +174,12 @@ router.post('/sessions', async (req: Request, res: Response) => {
         }
 
         const input_data = {
-            username: req.body.username,
+            email: req.body.email,
             password: req.body.password,
 
             invalid: function() {
-                // user accounts have a limit to characters
-                if (!this.username || this.username.length === 0 || this.username.length >=22 || this.username.length <= 3)
+                const regex = /^[a-zA-Z0-9._%+-]+@voco\.ee$/;
+                if (this.email.length === 0 || !regex.test(this.email))
                     return true;
 
                 // passwords have a limit to characters
@@ -200,8 +200,8 @@ router.post('/sessions', async (req: Request, res: Response) => {
             return;
         }
 
-        const sql_query = 'SELECT uid, email, username, password, picture, verified, rankLevel FROM users WHERE username=?';
-        const [rows] = await connection.query<RowDataPacket[]>(sql_query, [input_data.username]);
+        const sql_query = 'SELECT uid, email, password, picture, verified, rankLevel FROM users WHERE email=?';
+        const [rows] = await connection.query<RowDataPacket[]>(sql_query, [input_data.email]);
 
         if(!rows || rows.length === 0 || rows.length > 1) {
             res.status(500).json({ message: 'User not found.' });
@@ -242,26 +242,23 @@ router.post('/sessions', async (req: Request, res: Response) => {
         }
 
         const user = {
-            username: rows[0].username,
+            email: rows[0].email,
             uid: rows[0].uid,
             picture: rows[0].picture,
             rank: rows[0].rankLevel
         }
 
         req.session.user = user;
-        // todo: insert into active_users table that user logged on. Data sent would be username, no need for uid as username is unique.
+        // todo: insert into active_users table that user logged on. Data sent would be email, no need for uid as email is unique.
 
         // logging information when we are not in production
         if(!config.production) {
             console.log(`UID: ${user.uid} logged in at ${Date.now()}`);
         }
 
-        // active_users table can later be used to stop double login-s
-        active_users.set(user.uid, { username: user.username, picture: user.picture });
-
         return res.status(202).json({ message: 'Logged in.', data: {
                 uid: user.uid,
-                username: user.username,
+                email: user.email,
                 picture: user.picture
             }});
     } catch (error) {
@@ -288,20 +285,15 @@ router.put('/users', async (req: Request, res: Response) => {
         }
 
         const input_data = {
-            username: req.body.username,
-            password: req.body.password,
             email: req.body.email,
+            password: req.body.password,
 
             invalid: function() {
-                // user accounts have a limit to characters
-                if (!this.username || this.username.length === 0 || this.username.length >=22 || this.username.length <= 3)
-                    return true;
-
                 // passwords have a limit to characters
                 if (!this.password || this.password.length === 0 || this.password.length >= 80 || this.password.length <=6)
                     return true;
 
-                const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                const regex = /^[a-zA-Z0-9._%+-]+@voco\.ee$/;
                 if (this.email.length === 0 || !regex.test(this.email))
                     return true;
 
@@ -322,8 +314,8 @@ router.put('/users', async (req: Request, res: Response) => {
         const salt = await bcrypt.genSalt(12);
         const hashed_pass = await bcrypt.hash(input_data.password, salt);
 
-        const sql_query = 'INSERT INTO users (username, email, password) VALUES (?, ?, ?);';
-        const [rows] = await connection.query<RowDataPacket[]>(sql_query, [input_data.username, input_data.email, hashed_pass]);
+        const sql_query = 'INSERT INTO users (email, password) VALUES (?, ?, ?);';
+        const [rows] = await connection.query<RowDataPacket[]>(sql_query, [input_data.email, hashed_pass]);
 
         if(!rows || rows.affectedRows === 0) {
             res.status(500).json({ message: 'Failed inserting user.' });
@@ -378,7 +370,7 @@ router.get('/sessions', async (req: Request, res: Response) => {
 
         return res.status(200).json({ message: 'Success.', data: {
                 uid: session.uid,
-                username: session.username,
+                email: session.email,
                 picture: session.picture
             }});
     } catch (error) {
