@@ -50,9 +50,6 @@ export default {
     ...mapActions(['authorize']),
     async handleLogin() {
       try {
-        if(!this.isFormValid())
-            return;
-
         const response = await this.$http.post('/sessions', {
           email: this.email,
           password: this.password

@@ -40,10 +40,9 @@ router.get('/users', async (req: Request, res: Response) => {
             return;
         }
 
-        const sql_query = 'SELECT email, picture FROM users WHERE (SELECT uid FROM active_users);';
-        const [rows] = await connection.query(sql_query);
+        // get from active_users map
 
-        return res.status(200).json({ message: 'Success.', data: rows });
+        return res.status(200).json({ message: 'Success.', data: {} });
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -88,7 +87,7 @@ router.get('/verify/:token', async (req: Request, res: Response) => {
             return;
         }
 
-        const sql_query = 'UPDATE users SET verified=1 WHERE uid=?';
+        const sql_query = 'UPDATE kasutaja SET verified=1 WHERE id=?';
         const [rows] = await connection.query<RowDataPacket[]>(sql_query, [item.key]);
 
         // should never be true
@@ -135,7 +134,7 @@ router.post('/verify', async (req: Request, res: Response) => {
             return;
         }
 
-        const sql_query = 'UPDATE users SET verified=1 WHERE uid=?';
+        const sql_query = 'UPDATE kasutaja SET verified=1 WHERE id=?';
         const [rows] = await connection.query<RowDataPacket[]>(sql_query, [item.key]);
 
         // should never be true
@@ -200,7 +199,7 @@ router.post('/sessions', async (req: Request, res: Response) => {
             return;
         }
 
-        const sql_query = 'SELECT uid, email, password, picture, verified, rankLevel FROM users WHERE email=?';
+        const sql_query = 'SELECT id, email, parool, verified, opetaja, administraator FROM kasutaja WHERE email=?';
         const [rows] = await connection.query<RowDataPacket[]>(sql_query, [input_data.email]);
 
         if(!rows || rows.length === 0 || rows.length > 1) {
@@ -215,7 +214,7 @@ router.post('/sessions', async (req: Request, res: Response) => {
         }
 
         if(!rows[0].verified) {
-            let token = verifiedQueue.get(rows[0].uid);
+            let token = verifiedQueue.get(rows[0].id);
             const newToken = uuidv4();
             const expiration = new Date(Date.now() + 3 * 60 * 60 * 1000); // +3 hours current time
             if(token) {
@@ -223,18 +222,12 @@ router.post('/sessions', async (req: Request, res: Response) => {
 
                 // only send a new token when the current token has expired
                 if (token.expiration.getTime() < Date.now()) {
-                    verifiedQueue.delete(rows[0].uid);
-                    verifiedQueue.set(rows[0].uid, { token: newToken, expiration });
+                    verifiedQueue.delete(rows[0].id);
+                    verifiedQueue.set(rows[0].id, { token: newToken, expiration });
                 }
-
-                // todo: find a use for this
-                token = verifiedQueue.get(rows[0].uid);
             } else {
                 // verified email was never sent for some reason or expired
-                verifiedQueue.set(rows[0].uid, { token: newToken, expiration });
-
-                // todo: find a use for this
-                token = verifiedQueue.get(rows[0].uid);
+                verifiedQueue.set(rows[0].id, { token: newToken, expiration });
             }
 
             res.status(403).json({ message: 'Account not verified. Check your email.' });
@@ -243,9 +236,8 @@ router.post('/sessions', async (req: Request, res: Response) => {
 
         const user = {
             email: rows[0].email,
-            uid: rows[0].uid,
-            picture: rows[0].picture,
-            rank: rows[0].rankLevel
+            id: rows[0].id,
+            rank: rows[0].opetaja ? 1 : (rows[0].administraator ? 2 : 0)
         }
 
         req.session.user = user;
@@ -253,13 +245,12 @@ router.post('/sessions', async (req: Request, res: Response) => {
 
         // logging information when we are not in production
         if(!config.production) {
-            console.log(`UID: ${user.uid} logged in at ${Date.now()}`);
+            console.log(`UID: ${user.id} logged in at ${Date.now()}`);
         }
 
         return res.status(202).json({ message: 'Logged in.', data: {
-                uid: user.uid,
-                email: user.email,
-                picture: user.picture
+                id: user.id,
+                email: user.email
             }});
     } catch (error) {
         console.error('Error:', error);
@@ -314,7 +305,7 @@ router.put('/users', async (req: Request, res: Response) => {
         const salt = await bcrypt.genSalt(12);
         const hashed_pass = await bcrypt.hash(input_data.password, salt);
 
-        const sql_query = 'INSERT INTO users (email, password) VALUES (?, ?, ?);';
+        const sql_query = 'INSERT INTO kasutaja (email, password) VALUES (?, ?, ?);';
         const [rows] = await connection.query<RowDataPacket[]>(sql_query, [input_data.email, hashed_pass]);
 
         if(!rows || rows.affectedRows === 0) {
@@ -324,7 +315,7 @@ router.put('/users', async (req: Request, res: Response) => {
 
         const newToken = uuidv4();
         const expiration = new Date(Date.now() + 3 * 60 * 60 * 1000); // +3 hours current time
-        verifiedQueue.set(rows[0].uid, { token: newToken, expiration });
+        verifiedQueue.set(rows[0].id, { token: newToken, expiration });
 
         // send mail to user with token
         const link = `${config.ip}/verify/${newToken}`;
@@ -339,7 +330,7 @@ router.put('/users', async (req: Request, res: Response) => {
 
         // logging information when we are not in production
         if(!config.production) {
-            console.log(`UID: ${rows[0].uid} registered at ${Date.now()}`);
+            console.log(`UID: ${rows[0].id} registered at ${Date.now()}`);
         }
 
         return res.status(202).json({ message: 'Registered user.' });
@@ -369,9 +360,8 @@ router.get('/sessions', async (req: Request, res: Response) => {
         }
 
         return res.status(200).json({ message: 'Success.', data: {
-                uid: session.uid,
-                email: session.email,
-                picture: session.picture
+                id: session.id,
+                email: session.email
             }});
     } catch (error) {
         console.error('Error:', error);
@@ -392,7 +382,7 @@ router.delete('/sessions', async (req: Request, res: Response) => {
         connection = await pool.getConnection();
 
         if(req.session.user) {
-            await active_users.delete(req.session.user.uid);
+            active_users.delete(req.session.user.id);
         }
 
         req.session.destroy( async(error) => {
