@@ -134,7 +134,7 @@ router.post('/verify', async (req: Request, res: Response) => {
             return;
         }
 
-        const sql_query = 'UPDATE kasutaja SET verified=1 WHERE id=?';
+        const sql_query = 'UPDATE users SET verified=1 WHERE id=?';
         const [rows] = await connection.query<RowDataPacket[]>(sql_query, [item.key]);
 
         // should never be true
@@ -178,7 +178,7 @@ router.post('/sessions', async (req: Request, res: Response) => {
 
             invalid: function() {
                 const regex = /^[a-zA-Z0-9._%+-]+@voco\.ee$/;
-                if (this.email.length === 0 || !regex.test(this.email))
+                if (!this.email || this.email.length === 0 || !regex.test(this.email))
                     return true;
 
                 // passwords have a limit to characters
@@ -190,7 +190,7 @@ router.post('/sessions', async (req: Request, res: Response) => {
         };
 
         if(input_data.invalid()) {
-            res.status(400).json({ message: 'Bad request.' });
+            res.status(400).json({ message: 'Bad credentials.' });
             return;
         }
 
@@ -199,7 +199,7 @@ router.post('/sessions', async (req: Request, res: Response) => {
             return;
         }
 
-        const sql_query = 'SELECT id, email, parool, verified, opetaja, administraator FROM kasutaja WHERE email=?';
+        const sql_query = 'SELECT id, email, password, verified, teacher, administrator FROM users WHERE email=?';
         const [rows] = await connection.query<RowDataPacket[]>(sql_query, [input_data.email]);
 
         if(!rows || rows.length === 0 || rows.length > 1) {
@@ -237,7 +237,7 @@ router.post('/sessions', async (req: Request, res: Response) => {
         const user = {
             email: rows[0].email,
             id: rows[0].id,
-            rank: rows[0].opetaja ? 1 : (rows[0].administraator ? 2 : 0)
+            rank: rows[0].teacher ? 1 : (rows[0].administrator ? 2 : 0)
         }
 
         req.session.user = user;

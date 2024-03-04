@@ -4,7 +4,7 @@ const config: mysql.PoolOptions = {
     host: 'localhost',
     user: 'root',
     password: 'admin',
-    database: 'prototuup',
+    database: 'secureauth',
     waitForConnections: true,
     connectionLimit: 0,
     queueLimit: 0,
