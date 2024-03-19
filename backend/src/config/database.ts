@@ -1,13 +1,16 @@
 import mysql, { Pool, PoolConnection } from 'mysql2/promise';
 
+import dotenv from 'dotenv'
+dotenv.config();
+
 const config: mysql.PoolOptions = {
-    host: 'localhost',
-    user: 'root',
-    password: 'admin',
-    database: 'prototuup',
+    host: process.env.HOST,
+    user: process.env.USER,
+    password: process.env.PASSWORD,
+    database: process.env.DATABASE,
     waitForConnections: true,
-    connectionLimit: 0,
     queueLimit: 0,
+    connectionLimit: 0,
 };
 
 const pool: Pool = mysql.createPool(config);

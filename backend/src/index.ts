@@ -32,7 +32,6 @@ app.use(session({
     resave: false,
     saveUninitialized: true,
     cookie: {
-        //domain: '',
         sameSite: 'lax',
         secure: false,
     },
@@ -44,7 +43,7 @@ configureRouters(app);
 // @todo: RATE LIMITING
 
 // start the server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5155;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

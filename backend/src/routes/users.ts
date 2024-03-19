@@ -178,7 +178,7 @@ router.post('/sessions', async (req: Request, res: Response) => {
 
             invalid: function() {
                 const regex = /^[a-zA-Z0-9._%+-]+@voco\.ee$/;
-                if (this.email.length === 0 || !regex.test(this.email))
+                if (!this.email || this.email.length === 0 || !regex.test(this.email))
                     return true;
 
                 // passwords have a limit to characters
@@ -199,7 +199,7 @@ router.post('/sessions', async (req: Request, res: Response) => {
             return;
         }
 
-        const sql_query = 'SELECT id, email, parool, verified, opetaja, administraator FROM kasutaja WHERE email=?';
+        const sql_query = 'SELECT id, email, parool, verified, opetaja, administraator FROM users WHERE email=?';
         const [rows] = await connection.query<RowDataPacket[]>(sql_query, [input_data.email]);
 
         if(!rows || rows.length === 0 || rows.length > 1) {
