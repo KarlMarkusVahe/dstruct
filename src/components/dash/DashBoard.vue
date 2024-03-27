@@ -33,17 +33,24 @@
       </ul>
       <ul v-if="filterType === 'folders' || filterType === 'all'">
         <h2>Folders</h2>
+        <div>
+          <label for="folderFilterType">Filter By:</label>
+          <select id="folderFilterType" v-model="folderFilterType">
+            <option value="title">Title</option>
+            <option value="category">Category</option>
+          </select>
+        </div>
         <!-- Display filtered folders -->
         <template v-for="folder in filteredData.folders" :key="folder.ID">
           <li>
-            <span @click="toggleFolder(folder)" class="folder-title">{{ folder.title }}</span>
+            <span @click="toggleFolder(folder)" class="folder-title">{{ folder.title }} - {{ folder.category }}</span>
             <ul v-show="isOpen(folder)">
               <template v-for="subfolder in folder.subfolders" :key="subfolder.ID">
                 <li>
-                  <span @click="toggleFolder(subfolder)" class="folder-title">{{ subfolder.title }}</span>
+                  <span @click="toggleFolder(subfolder)" class="folder-title">{{ subfolder.title }} - {{ subfolder.category }}</span>
                   <ul v-show="isOpen(subfolder)">
                     <li v-for="nestedSubfolder in subfolder.subfolders" :key="nestedSubfolder.ID">
-                      {{ nestedSubfolder.title }}
+                      {{ nestedSubfolder.title }} - {{ nestedSubfolder.category }}
                     </li>
                   </ul>
                 </li>
@@ -76,6 +83,7 @@ export default {
       searchQuery: '', // Added search query data property
       filterType: 'all', // Default to filtering documents
       docFilterType: 'title', // Default document filter type
+      folderFilterType: 'title', // Default folder filter type
     };
   },
   computed: {
@@ -85,7 +93,9 @@ export default {
         const filteredDocuments = this.documents.filter(doc =>
             this.filterDoc(doc, query)
         );
-        const filteredFolders = this.filterFolders(this.folders, query);
+        const filteredFolders = this.folders.filter(folder =>
+            this.filterFolders(folder, query)
+        );
         return { documents: filteredDocuments, folders: filteredFolders };
       } else if (this.filterType === 'documents') {
         return {
@@ -95,7 +105,9 @@ export default {
           folders: [],
         };
       } else if (this.filterType === 'folders') {
-        return { documents: [], folders: this.filterFolders(this.folders, query) };
+        return { documents: [], folders: this.folders.filter(folder =>
+              this.filterFolders(folder, query)
+          )};
       }
       return { documents: [], folders: [] };
     },
@@ -145,19 +157,49 @@ export default {
     isOpen(item) {
       return this.openFolders.includes(item.ID);
     },
-    filterFolders(folders, query) {
+    filterFolders(folder, query) {
       // Custom filtering logic for folders based on query
-      return folders.filter(folder =>
-          folder.title.toLowerCase().includes(query) ||
-          this.filterSubfolders(folder.subfolders, query)
-      );
+      if (this.folderFilterType === 'title') {
+        if (folder.title.toLowerCase().includes(query)) {
+          return true;
+        }
+      } else if (this.folderFilterType === 'category') {
+        if (folder.category.toLowerCase().includes(query)) {
+          return true;
+        }
+      }
+
+      // Check if any subfolder matches the query
+      if (folder.subfolders) {
+        for (const subfolder of folder.subfolders) {
+          if (this.filterSubfolders(subfolder, query)) {
+            return true;
+          }
+        }
+      }
+
+      return false;
     },
-    filterSubfolders(subfolders, query) {
+
+    filterSubfolders(subfolder, query) {
       // Custom filtering logic for subfolders based on query
-      return subfolders.some(subfolder =>
-          subfolder.title.toLowerCase().includes(query) ||
-          (subfolder.subfolders && this.filterSubfolders(subfolder.subfolders, query))
-      );
+      if (subfolder.title.toLowerCase().includes(query)) {
+        return true;
+      }
+      if (subfolder.category.toLowerCase().includes(query)) {
+        return true;
+      }
+
+      // Check if any nested subfolder matches the query
+      if (subfolder.subfolders) {
+        for (const nestedSubfolder of subfolder.subfolders) {
+          if (this.filterSubfolders(nestedSubfolder, query)) {
+            return true;
+          }
+        }
+      }
+
+      return false;
     },
     filterDoc(doc, query) {
       // Filter documents based on selected filter type (title or type)
