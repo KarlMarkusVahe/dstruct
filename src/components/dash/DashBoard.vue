@@ -19,6 +19,13 @@
     <div v-if="filteredData.documents.length > 0 || filteredData.folders.length > 0">
       <ul v-if="filterType === 'documents' || filterType === 'all'">
         <h2>Documents</h2>
+        <div>
+          <label for="docFilterType">Filter By:</label>
+          <select id="docFilterType" v-model="docFilterType">
+            <option value="title">Title</option>
+            <option value="type">Type</option>
+          </select>
+        </div>
         <li v-for="document in filteredData.documents" :key="document.ID">
           {{ document.title }} - {{ document.document_type }}
           <!-- Display other document information as needed -->
@@ -68,6 +75,7 @@ export default {
       openFolders: [],
       searchQuery: '', // Added search query data property
       filterType: 'all', // Default to filtering documents
+      docFilterType: 'title', // Default document filter type
     };
   },
   computed: {
@@ -75,16 +83,14 @@ export default {
       const query = this.searchQuery.toLowerCase().trim();
       if (this.filterType === 'all') {
         const filteredDocuments = this.documents.filter(doc =>
-            doc.title.toLowerCase().includes(query)
-            // doc.document_type.toLowerCase().includes(query) searches document by type
+            this.filterDoc(doc, query)
         );
         const filteredFolders = this.filterFolders(this.folders, query);
         return { documents: filteredDocuments, folders: filteredFolders };
       } else if (this.filterType === 'documents') {
         return {
           documents: this.documents.filter(doc =>
-              doc.title.toLowerCase().includes(query)
-              // doc.document_type.toLowerCase().includes(query) searches document by type
+              this.filterDoc(doc, query)
           ),
           folders: [],
         };
@@ -152,6 +158,15 @@ export default {
           subfolder.title.toLowerCase().includes(query) ||
           (subfolder.subfolders && this.filterSubfolders(subfolder.subfolders, query))
       );
+    },
+    filterDoc(doc, query) {
+      // Filter documents based on selected filter type (title or type)
+      if (this.docFilterType === 'title') {
+        return doc.title.toLowerCase().includes(query);
+      } else if (this.docFilterType === 'type') {
+        return doc.document_type.toLowerCase().includes(query);
+      }
+      return false;
     },
     getFilterTypeName() {
       if (this.filterType === 'documents') return 'Documents';
