@@ -58,9 +58,12 @@ export default {
         if (response.status === 202) {
           await this.authorize(response.data.data);
           await router.push('/dashboard');
+        } else {
+          alert('Login failed. Please try again.')
+          console.error('Unexpected status code:', response.status);
         }
       } catch (error) {
-        await this.setError('Login failed. Please try again.');
+        alert('Login failed. Please try again.')
         console.error('Login error:', error);
       }
     },
