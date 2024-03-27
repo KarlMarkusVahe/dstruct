@@ -1,10 +1,33 @@
 <template>
   <div class="dashboard-container">
     <h1>Welcome to Dashboard</h1>
-    <div v-if="folders.length > 0">
-      <h2>Folders</h2>
-      <ul>
-        <template v-for="folder in folders" :key="folder.ID">
+    <!-- Dropdown to choose filter type -->
+    <div>
+      <label for="filterType">Filter By:</label>
+      <select id="filterType" v-model="filterType">
+        <option value="all">All</option>
+        <option value="documents">Documents</option>
+        <option value="folders">Folders</option>
+      </select>
+    </div>
+    <!-- Search input for filtering -->
+    <div>
+      <label for="searchInput">Search {{ getFilterTypeName() }}:</label>
+      <input type="text" id="searchInput" v-model="searchQuery" placeholder="Enter keywords">
+    </div>
+    <!-- Display filtered content based on filter type -->
+    <div v-if="filteredData.documents.length > 0 || filteredData.folders.length > 0">
+      <ul v-if="filterType === 'documents' || filterType === 'all'">
+        <h2>Documents</h2>
+        <li v-for="document in filteredData.documents" :key="document.ID">
+          {{ document.title }} - {{ document.document_type }}
+          <!-- Display other document information as needed -->
+        </li>
+      </ul>
+      <ul v-if="filterType === 'folders' || filterType === 'all'">
+        <h2>Folders</h2>
+        <!-- Display filtered folders -->
+        <template v-for="folder in filteredData.folders" :key="folder.ID">
           <li>
             <span @click="toggleFolder(folder)" class="folder-title">{{ folder.title }}</span>
             <ul v-show="isOpen(folder)">
@@ -24,19 +47,7 @@
       </ul>
     </div>
     <div v-else>
-      <p>No folders found.</p>
-    </div>
-    <div v-if="documents.length > 0">
-      <h2>Documents</h2>
-      <ul>
-        <li v-for="document in documents" :key="document.ID">
-          {{ document.title }} - {{ document.document_type }}
-          <!-- Display other document information as needed -->
-        </li>
-      </ul>
-    </div>
-    <div v-else>
-      <p>No documents found.</p>
+      <p>No matching {{ getFilterTypeName() }} found.</p>
     </div>
   </div>
   <div class="logout-container">
@@ -55,7 +66,33 @@ export default {
       folders: [],
       documents: [],
       openFolders: [],
+      searchQuery: '', // Added search query data property
+      filterType: 'all', // Default to filtering documents
     };
+  },
+  computed: {
+    filteredData() {
+      const query = this.searchQuery.toLowerCase().trim();
+      if (this.filterType === 'all') {
+        const filteredDocuments = this.documents.filter(doc =>
+            doc.title.toLowerCase().includes(query)
+            // doc.document_type.toLowerCase().includes(query) searches document by type
+        );
+        const filteredFolders = this.filterFolders(this.folders, query);
+        return { documents: filteredDocuments, folders: filteredFolders };
+      } else if (this.filterType === 'documents') {
+        return {
+          documents: this.documents.filter(doc =>
+              doc.title.toLowerCase().includes(query)
+              // doc.document_type.toLowerCase().includes(query) searches document by type
+          ),
+          folders: [],
+        };
+      } else if (this.filterType === 'folders') {
+        return { documents: [], folders: this.filterFolders(this.folders, query) };
+      }
+      return { documents: [], folders: [] };
+    },
   },
   methods: {
     ...mapActions(['unAuthorize']),
@@ -102,6 +139,25 @@ export default {
     isOpen(item) {
       return this.openFolders.includes(item.ID);
     },
+    filterFolders(folders, query) {
+      // Custom filtering logic for folders based on query
+      return folders.filter(folder =>
+          folder.title.toLowerCase().includes(query) ||
+          this.filterSubfolders(folder.subfolders, query)
+      );
+    },
+    filterSubfolders(subfolders, query) {
+      // Custom filtering logic for subfolders based on query
+      return subfolders.some(subfolder =>
+          subfolder.title.toLowerCase().includes(query) ||
+          (subfolder.subfolders && this.filterSubfolders(subfolder.subfolders, query))
+      );
+    },
+    getFilterTypeName() {
+      if (this.filterType === 'documents') return 'Documents';
+      else if (this.filterType === 'folders') return 'Folders';
+      else return 'All';
+    },
   },
   async created() {
     const isAuthenticated = localStorage.getItem('isAuthenticated');
@@ -113,7 +169,7 @@ export default {
       router.push('/login');
     }
   },
-}
+};
 </script>
 
 <style scoped>
