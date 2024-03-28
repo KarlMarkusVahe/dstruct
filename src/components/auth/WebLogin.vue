@@ -1,24 +1,25 @@
 <template>
-  <div class="login-container">
-    <div class="logo-container">
-      <span class="logo-text">DStruct</span>
+    <div class="login-container">
+        <div class="logo-container">
+            <span class="logo-text">DStruct</span>
+        </div>
+        <div class="login-card">
+            <form @submit.prevent="handleLogin">
+                <div class="field">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" v-model="email" required />
+                    <i class="fas fa-user input-icon"></i>
+                </div>
+                <div class="field">
+                    <label for="password">Password</label>
+                    <input v-if="showPassword" type="text" id="password" v-model="password" required />
+                    <input v-else type="password" id="password" v-model="password" required />
+                    <i class="fas" :class="lockIconClass" @click="togglePasswordVisibility"></i>
+                </div>
+                <button type="submit" :class="{ 'valid': isFormValid }">Log In</button>
+            </form>
+        </div>
     </div>
-      <div class="login-card">
-        <form @submit.prevent="handleLogin">
-          <div class="field">
-            <label for="email">Email</label>
-            <input type="email" id="email" v-model="email" required />
-            <i class="fas fa-user input-icon"></i>
-          </div>
-          <div class="field">
-            <label for="password">Password</label>
-            <input type="password" id="password" v-model="password" required />
-            <i class="fas fa-lock input-icon"></i>
-          </div>
-          <button type="submit" :class="{ 'valid': isFormValid }">Log In</button>
-        </form>
-      </div>
-  </div>
 </template>
 
 <script>
@@ -27,56 +28,63 @@ import router from "@/router";
 import { loadScript } from "vue-plugin-load-script";
 
 export default {
-  data() {
-    return {
-      email: '',
-      password: '',
-      error: ''
-    };
-  },
-  computed: {
-    isFormValid() {
-      const regex = /^[a-zA-Z0-9._%+-]+@voco\.ee$/;
-      if(!regex.test(this.email))
-        return false;
+    data() {
+        return {
+            email: '',
+            password: '',
+            error: '',
+            showPassword: false
+        };
+    },
+    computed: {
+        isFormValid() {
+            const regex = /^[a-zA-Z0-9._%+-]+@voco\.ee$/;
+            if(!regex.test(this.email))
+                return false;
 
-      return this.email && this.password;
-    }
-  },
-  async mounted() {
-    await loadScript('https://kit.fontawesome.com/f18c6cb8af.js');
-  },
-  methods: {
-    ...mapActions(['authorize']),
-    async handleLogin() {
-      try {
-        const response = await this.$http.post('/sessions', {
-          email: this.email,
-          password: this.password
-        });
-
-        if (response.status === 202) {
-          await this.authorize(response.data.data);
-          await router.push('/dashboard');
-        } else {
-          alert('Login failed. Please try again.')
-          console.error('Unexpected status code:', response.status);
+            return this.email && this.password;
+        },
+        lockIconClass() {
+            return this.showPassword ? 'fa fa-unlock input-icon' : 'fa fa-lock input-icon';
         }
-      } catch (error) {
-        alert('Login failed. Please try again.')
-        console.error('Login error:', error);
-      }
     },
-    async setError(message) {
-      this.error = message;
-      setTimeout(() => {
-        this.clearError();
-      }, 8000);
+    async mounted() {
+        await loadScript('https://kit.fontawesome.com/f18c6cb8af.js');
     },
-    async clearError() {
-      this.error = '';
-    },
-  }
+    methods: {
+        ...mapActions(['authorize']),
+        async handleLogin() {
+            try {
+                const response = await this.$http.post('/sessions', {
+                    email: this.email,
+                    password: this.password
+                });
+
+                if (response.status === 202) {
+                    await this.authorize(response.data.data);
+                    await router.push('/dashboard');
+                } else {
+                    alert('Login failed. Please try again.')
+                    console.error('Unexpected status code:', response.status);
+                }
+            } catch (error) {
+                alert('Login failed. Please try again.')
+                console.error('Login error:', error);
+            }
+        },
+        async setError(message) {
+            this.error = message;
+            setTimeout(() => {
+                this.clearError();
+            }, 8000);
+        },
+        async clearError() {
+            this.error = '';
+        },
+        togglePasswordVisibility() {
+            this.showPassword = !this.showPassword;
+        }
+    }
 };
 </script>
 
