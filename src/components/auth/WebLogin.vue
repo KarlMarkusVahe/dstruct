@@ -1,25 +1,25 @@
 <template>
-  <div class="login-container">
-    <div class="logo-container">
-      <span class="logo-text">DStruct</span>
+    <div class="login-container">
+        <div class="logo-container">
+            <span class="logo-text">DStruct</span>
+        </div>
+        <div class="login-card">
+            <form @submit.prevent="handleLogin">
+                <div class="field">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" v-model="email" required />
+                    <i class="fas fa-user input-icon"></i>
+                </div>
+                <div class="field">
+                    <label for="password">Password</label>
+                    <input v-if="showPassword" type="text" id="password" v-model="password" required />
+                    <input v-else type="password" id="password" v-model="password" required />
+                    <i class="fas" :class="lockIconClass" @click="togglePasswordVisibility"></i>
+                </div>
+                <button type="submit" :class="{ 'valid': isFormValid }">Log In</button>
+            </form>
+        </div>
     </div>
-      <div class="login-card">
-        <form @submit.prevent="handleLogin">
-          <div class="field">
-            <label for="email">Email</label>
-            <input type="email" id="email" v-model="email" required />
-            <i class="fas fa-user input-icon"></i>
-          </div>
-          <div class="field">
-            <label for="password">Password</label>
-            <input v-if="showPassword" type="text" id="password" v-model="password" required />
-            <input v-else type="password" id="password" v-model="password" required />
-            <i class="fas" :class="lockIconClass" @click="togglePasswordVisibility"></i>
-          </div>
-          <button type="submit" :class="{ 'valid': isFormValid }">Log In</button>
-        </form>
-      </div>
-  </div>
 </template>
 
 <script>
