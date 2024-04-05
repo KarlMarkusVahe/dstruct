@@ -35,9 +35,15 @@ const actions = {
         }
     },
     async authorize({ commit }, { userData, isAuthenticated }) {
-        commit('setStatus', { userData, isAuthenticated });
-        localStorage.setItem('user', JSON.stringify(userData));
-        localStorage.setItem('isAuthenticated', isAuthenticated);
+        try {
+            commit('setStatus', { userData, isAuthenticated });
+            localStorage.setItem('user', JSON.stringify(userData));
+            console.log(userData);
+            localStorage.setItem('isAuthenticated', isAuthenticated);
+            return Promise.resolve(); // Resolve the promise if everything is successful
+        } catch (error) {
+            return Promise.reject(error); // Reject the promise if there's an error
+        }
     },
     async unAuthorize({ commit }) {
         commit('unSetStatus');

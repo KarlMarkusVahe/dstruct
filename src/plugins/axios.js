@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-    baseURL: 'http://localhost:3000/api',
+    baseURL: 'https://dstruct.vocoprojektid.ee/api/',
+    //baseURL: 'http://localhost:3000/api/',
     withCredentials: true, // send cookies with cross-origin requests
     headers: {
         'Content-Type': 'application/json',

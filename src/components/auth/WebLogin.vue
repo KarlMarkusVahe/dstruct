@@ -12,8 +12,9 @@
           </div>
           <div class="field">
             <label for="password">Password</label>
-            <input type="password" id="password" v-model="password" required />
-            <i class="fas fa-lock input-icon"></i>
+            <input v-if="showPassword" type="text" id="password" v-model="password" required />
+            <input v-else type="password" id="password" v-model="password" required />
+            <i class="fas" :class="lockIconClass" @click="togglePasswordVisibility"></i>
           </div>
           <button type="submit" :class="{ 'valid': isFormValid }">Log In</button>
         </form>
@@ -31,7 +32,8 @@ export default {
     return {
       email: '',
       password: '',
-      error: ''
+      error: '',
+      showPassword: false
     };
   },
   computed: {
@@ -41,6 +43,9 @@ export default {
         return false;
 
       return this.email && this.password;
+    },
+    lockIconClass() {
+      return this.showPassword ? 'fa fa-unlock input-icon' : 'fa fa-lock input-icon';
     }
   },
   async mounted() {
@@ -56,26 +61,25 @@ export default {
         });
 
         if (response.status === 202) {
+          await this.authorize({
+            userData: response.data.data,
+            isAuthenticated: true // Assuming authentication is successful
+          });
           await this.authorize(response.data.data);
+          console.log(response.data.data);
           await router.push('/dashboard');
         } else {
-          alert('Login failed. Please try again.')
+          alert('Login failed. Please try again.');
           console.error('Unexpected status code:', response.status);
         }
       } catch (error) {
-        alert('Login failed. Please try again.')
+        alert('Login failed. Please try again.');
         console.error('Login error:', error);
       }
     },
-    async setError(message) {
-      this.error = message;
-      setTimeout(() => {
-        this.clearError();
-      }, 8000);
-    },
-    async clearError() {
-      this.error = '';
-    },
+    togglePasswordVisibility() {
+      this.showPassword = !this.showPassword;
+    }
   }
 };
 </script>
