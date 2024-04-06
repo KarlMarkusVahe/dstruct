@@ -18,14 +18,20 @@
       <ul v-if="filterType === 'folders' || filterType === 'all'">
       <h2>Folders</h2>
       <ul>
-        <li v-for="folder in filteredFolders" :key="folder.ID">{{ folder.TITLE }}</li>
+        <li v-for="folder in filteredFolders" :key="folder.ID">
+          {{ folder.TITLE }}
+          <button @click="deleteFolder(folder.ID)">Delete</button>
+        </li>
       </ul>
       </ul>
       <ul v-if="filterType === 'documents' || filterType === 'all'">
       <h2>Documents</h2>
       <ul>
-        <li v-for="document in filteredDocuments" :key="document.ID" @click="showDocumentDetails(document)">{{ document.TITLE }}</li>
-        <div id="documentDetails" class="mt-4">
+        <li v-for="document in filteredDocuments" :key="document.ID" @click="showDocumentDetails(document)">
+          {{ document.TITLE }}
+          <button @click="deleteDocument(document.ID)">Delete</button>
+        </li>
+        <div id="documentDetails" class="document-details">
           <h3>Document Details</h3>
           <p><strong>Title:</strong> <span id="documentTitle"></span></p>
           <p><strong>Document Type:</strong> <span id="documentType"></span></p>
@@ -34,6 +40,38 @@
       </ul>
       </ul>
     </div>
+  </div>
+  <h2>Add folder</h2>
+  <div class="create-folder">
+    <label for="foldertitle">Title</label>
+    <div class="create">
+      <input type="text" class="form-control" id="foldertitle" v-model="foldertitle">
+    </div>
+    <label for="foldercategory">category</label>
+    <div class="create">
+      <input type="text" class="form-control" id="foldercategory" v-model="foldercategory">
+    </div>
+    <label for="folder_ID">Folder ID</label>
+    <div class="create">
+      <input type="number" class="form-control" id="folder_ID" v-model="folder_ID">
+    </div>
+    <button @click="CreateFolder">Create Folder</button>
+  </div>
+  <h2>Add document</h2>
+  <div class="create-document">
+    <label for="documenttitle">Title</label>
+    <div class="create">
+      <input type="text" class="form-control" id="documenttitle" v-model="documenttitle">
+    </div>
+    <label for="documenttype">type</label>
+    <div class="create">
+      <input type="text" class="form-control" id="documenttype" v-model="documenttype">
+    </div>
+    <label for="document_fid">folder ID</label>
+    <div class="create">
+      <input type="number" class="form-control" id="document_fid" v-model="document_fid">
+    </div>
+    <button @click="CreateDocument">Create Document</button>
   </div>
   <div class="logout-container">
     <button class="logout-button" @click="logout">Logout</button>
@@ -102,6 +140,7 @@ export default {
               this.$http.get('/docs/documents')
                   .then(response => {
                       this.documents = response.data.data;
+                      console.log(this.documents);
                   })
                   .catch(error => {
 console.error('Error fetching data:', error);
@@ -114,14 +153,92 @@ console.error('Error fetching data:', error);
     },
     async showDocumentDetails(doc) {
       const documentTitle = document.getElementById('documentTitle');
-
+      const documentType = document.getElementById('documentType');
+      const documentId = document.getElementById('documentId');
 
       // Display document details in the UI
       documentTitle.textContent = doc.TITLE;
-
+      documentType.textContent = doc.document_type;
+      documentId.textContent = doc.ID;
 
       // Show the document details container
       document.getElementById('documentDetails').style.display = 'block';
+    },
+    async CreateFolder() {
+      // Create a new folder
+      const folder = {
+        title: this.foldertitle,
+        category: this.foldercategory,
+        _ID: this.folder_ID,
+      };
+      await this.$http.put('/docs/folders', folder)
+          .then(response => {
+            if(response.status === 201) { // Created
+              alert('Folder created successfully.');
+              this.fetchData();
+            } else {
+              console.error('Unexpected status code: ', response.status);
+              alert('Failed to create folder. Please try again.')
+            }
+          })
+          .catch(error => {
+            console.error('Folder creation error:', error.message);
+            alert('Failed to create folder. Please try again.')
+          });
+    },
+    async CreateDocument() {
+      // Create a new document
+      const document = {
+        title: this.documenttitle,
+        document_type: this.documenttype,
+        folder_id: this.document_fid,
+      };
+      await this.$http.put('/docs/documents', document)
+          .then(response => {
+            if(response.status === 201) { // Created
+              alert('Document created successfully.');
+              this.fetchData();
+            } else {
+              console.error('Unexpected status code: ', response.status);
+              alert('Failed to create document. Please try again.')
+            }
+          })
+          .catch(error => {
+            console.error('Document creation error:', error.message);
+            alert('Failed to create document. Please try again.')
+          });
+    },
+    async deleteFolder(folderId) {
+      await this.$http.delete(`/docs/folders/${folderId}`)
+          .then(response => {
+            if(response.status === 200) { // OK
+              alert('Folder deleted successfully.');
+              this.fetchData();
+            } else {
+              console.error('Unexpected status code: ', response.status);
+              alert('Failed to delete folder. Please try again.')
+            }
+          })
+          .catch(error => {
+            console.error('Folder deletion error:', error.message);
+            alert('Failed to delete folder. Please try again.')
+          });
+    },
+    async deleteDocument(documentId) {
+      await this.$http.delete(`/docs/documents/${documentId}`)
+          .then(response => {
+            if(response.status === 200) { // OK
+              alert('Document deleted successfully.');
+              this.fetchData();
+            } else {
+              console.error('Unexpected status code: ', response.status);
+              alert('Failed to delete document. Please try again.')
+            }
+          })
+          .catch(error => {
+            console.error('Document deletion error:', error.message);
+            alert('Failed to delete document. Please try again.')
+          });
     },
     async logout() {
       await this.$http.delete('/sessions')
@@ -180,6 +297,16 @@ console.error('Error fetching data:', error);
   font-size: 20px;
   color: var(--input-text);
   margin-bottom: 20px;
+}
+
+.document-details h3 {
+  font-size: 16px;
+  color: var(--input-text);
+}
+
+.document-details p {
+  font-size: 12px;
+  color: var(--input-text);
 }
 
 .dashboard-container > div {
