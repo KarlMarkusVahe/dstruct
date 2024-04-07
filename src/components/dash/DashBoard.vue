@@ -16,22 +16,26 @@
       <input type="text" id="searchInput" v-model="searchQuery" placeholder="Enter keywords">
     </div>
       <ul v-if="filterType === 'folders' || filterType === 'all'">
-      <h2>Folders</h2>
+      <h2 v-if="!selectedDocument">Folders</h2>
       <ul>
-        <li v-for="folder in filteredFolders" :key="folder.ID" @click="navigateToFolderDocuments(folder)">
+        <div v-if="Object.keys(selectedFolder).length > 0">
+          <h2>Current Folder: {{ selectedFolder.TITLE }}</h2>
+        </div>
+        <li v-for="folder in displayedFolders" :key="folder.ID" @click="navigateToFolderDocuments(folder)">
           {{ folder.TITLE }}
           <button @click="deleteFolder(folder.ID)">Delete</button>
         </li>
       </ul>
-        <button v-if="Object.keys(selectedFolder).length > 0" @click="goBack">Go Back</button>
+        <button v-if="!selectedDocument && Object.keys(selectedFolder).length > 0" @click="goBack">Go Back</button>
       </ul>
       <ul v-if="filterType === 'documents' || filterType === 'all'">
       <h2>Documents</h2>
       <ul>
-        <li v-for="document in filteredDocuments" :key="document.ID" @click="showDocumentDetails(document)">
+        <li v-for="document in displayedDocuments" :key="document.ID" @click="showDocumentDetails(document)">
           {{ document.TITLE }}
           <button @click="deleteDocument(document.ID)">Delete</button>
         </li>
+        <button v-if="selectedDocument" @click="clearSelectedDocument">Go Back</button>
         <div id="documentDetails" class="document-details">
           <h3>Document Details</h3>
           <p><strong>Title:</strong> <span id="documentTitle"></span></p>
@@ -95,6 +99,7 @@ export default {
       folderFilterType: 'title', // Default folder filter type
       isLoading: true,
       selectedFolder: [],
+      selectedDocument: null,
     };
   },
   computed: {
@@ -103,7 +108,19 @@ export default {
     },
     filteredDocuments() {
       return this.filterItems(this.documents, this.searchQuery, this.filterType, 'document');
-    }
+    },
+    displayedDocuments() {
+      if (this.selectedDocument) {
+        return this.filteredDocuments.filter(document => document.ID === this.selectedDocument.ID);
+      }
+      return this.filteredDocuments;
+    },
+    displayedFolders() {
+      if (this.selectedDocument) {
+        return this.filteredFolders.filter(folder => folder.ID === this.selectedDocument.folder_id);
+      }
+      return this.filteredFolders;
+    },
   },
   methods: {
     ...mapActions(['unAuthorize']),
@@ -138,33 +155,39 @@ export default {
       this.isLoading = true;
       this.$http.get('/docs/folders')
           .then(response => {
-              this.folders = response.data.data;
-              this.$http.get('/docs/documents')
-                  .then(response => {
-                      this.documents = response.data.data;
-                      console.log(this.documents);
-                  })
-                  .catch(error => {
-console.error('Error fetching data:', error);
-                  });
+            // Only get the root folders (folders with no parent)
+            this.folders = response.data.data.filter(folder => !folder._ID);
+            this.$http.get('/docs/documents')
+                .then(response => {
+                  this.documents = response.data.data;
+                  console.log(this.documents);
+                })
+                .catch(error => {
+                  console.error('Error fetching data:', error);
+                });
           })
           .catch(error => {
-console.error('Error fetching data:', error);
+            console.error('Error fetching data:', error);
           });
       this.isLoading = false;
     },
     async showDocumentDetails(doc) {
+      this.selectedDocument = doc;
+
       const documentTitle = document.getElementById('documentTitle');
       const documentType = document.getElementById('documentType');
       const documentId = document.getElementById('documentId');
 
       // Display document details in the UI
-      documentTitle.textContent = doc.TITLE;
-      documentType.textContent = doc.document_type;
-      documentId.textContent = doc.ID;
+      documentTitle.textContent = this.selectedDocument.TITLE;
+      documentType.textContent = this.selectedDocument.document_type;
+      documentId.textContent = this.selectedDocument.ID;
 
       // Show the document details container
       document.getElementById('documentDetails').style.display = 'block';
+    },
+    clearSelectedDocument() {
+      this.selectedDocument = null;
     },
     async CreateFolder() {
       // Create a new folder
@@ -247,10 +270,18 @@ console.error('Error fetching data:', error);
       await this.$http.get(`/docs/folders/${folder.ID}/documents`)
           .then(response => {
             this.documents = response.data.data;
-            console.log(this.selectedFolder.length)
           })
           .catch(error => {
             console.error('Error fetching folder documents:', error);
+          });
+
+      await this.$http.get(`/docs/folders`)
+          .then(response => {
+            // Filter the subfolders of the selected folder
+            this.folders = response.data.data.filter(subfolder => subfolder._ID === folder.ID);
+          })
+          .catch(error => {
+            console.error('Error fetching subfolders:', error);
           });
     },
     goBack() {
