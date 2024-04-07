@@ -23,6 +23,7 @@
           <button @click="deleteFolder(folder.ID)">Delete</button>
         </li>
       </ul>
+        <button v-if="Object.keys(selectedFolder).length > 0" @click="goBack">Go Back</button>
       </ul>
       <ul v-if="filterType === 'documents' || filterType === 'all'">
       <h2>Documents</h2>
@@ -246,10 +247,16 @@ console.error('Error fetching data:', error);
       await this.$http.get(`/docs/folders/${folder.ID}/documents`)
           .then(response => {
             this.documents = response.data.data;
+            console.log(this.selectedFolder.length)
           })
           .catch(error => {
             console.error('Error fetching folder documents:', error);
           });
+    },
+    goBack() {
+      // Clear selected folder and fetch all folders again
+      this.selectedFolder = [];
+      this.fetchData();
     },
     async logout() {
       await this.$http.delete('/sessions')
