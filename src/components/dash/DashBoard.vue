@@ -18,7 +18,7 @@
       <ul v-if="filterType === 'folders' || filterType === 'all'">
       <h2>Folders</h2>
       <ul>
-        <li v-for="folder in filteredFolders" :key="folder.ID">
+        <li v-for="folder in filteredFolders" :key="folder.ID" @click="navigateToFolderDocuments(folder)">
           {{ folder.TITLE }}
           <button @click="deleteFolder(folder.ID)">Delete</button>
         </li>
@@ -92,7 +92,8 @@ export default {
       filterType: 'all', // Default to filtering documents
       docFilterType: 'title', // Default document filter type
       folderFilterType: 'title', // Default folder filter type
-      isLoading: true
+      isLoading: true,
+      selectedFolder: [],
     };
   },
   computed: {
@@ -240,6 +241,16 @@ console.error('Error fetching data:', error);
             alert('Failed to delete document. Please try again.')
           });
     },
+    async navigateToFolderDocuments(folder) {
+      this.selectedFolder = folder;
+      await this.$http.get(`/docs/folders/${folder.ID}/documents`)
+          .then(response => {
+            this.documents = response.data.data;
+          })
+          .catch(error => {
+            console.error('Error fetching folder documents:', error);
+          });
+    },
     async logout() {
       await this.$http.delete('/sessions')
           .then(response => {
@@ -272,7 +283,7 @@ console.error('Error fetching data:', error);
     },
     filterType() {
 
-    }
+    },
   }
 };
 </script>
