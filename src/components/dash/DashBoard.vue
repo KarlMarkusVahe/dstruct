@@ -90,6 +90,22 @@
           </div>
           <button @click="shareDocument(selectedDocument.ID)">Share</button>
         </div>
+        <div v-if="selectedDocument" id="updateDocument" class="update-document">
+          <h3>Update Document</h3>
+          <label for="documenttitle">Title</label>
+          <div class="create">
+            <input type="text" class="form-control" id="documenttitle" v-model="documenttitle">
+          </div>
+          <label for="documenttype">Type</label>
+          <div class="create">
+            <input type="text" class="form-control" id="documenttype" v-model="documenttype">
+          </div>
+          <label for="document_fid">Folder ID</label>
+          <div class="create">
+            <input type="number" class="form-control" id="document_fid" v-model="document_fid">
+          </div>
+          <button @click="updateDocument(selectedDocument.ID)">Update</button>
+        </div>
       </ul>
       </ul>
       <ul v-if="filterType === 'students'">
@@ -381,6 +397,28 @@ export default {
           .catch(error => {
             console.error('Folder update error:', error.message);
             alert('Failed to update folder. Please try again.')
+          });
+    },
+    async updateDocument(documentId) {
+      const body = {
+        title: this.documenttitle,
+        document_type: this.documenttype,
+        FOLDER_ID: this.document_fid,
+      };
+      await this.$http.post(`/docs/documents/${documentId}`, body)
+          .then(response => {
+            if(response.status === 200) { // OK
+              alert('Document updated successfully.');
+              this.fetchData();
+              this.showDocumentDetails(this.selectedDocument);
+            } else {
+              console.error('Unexpected status code: ', response.status);
+              alert('Failed to update document. Please try again.')
+            }
+          })
+          .catch(error => {
+            console.error('Document update error:', error.message);
+            alert('Failed to update document. Please try again.')
           });
     },
     async navigateToFolderDocuments(folder) {
