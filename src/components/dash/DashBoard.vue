@@ -44,6 +44,18 @@
           </div>
           <button @click="shareFolder(selectedFolder.ID)">Share</button>
         </div>
+        <div v-if="Object.keys(selectedFolder).length > 0" id="updateFolder" class="update-folder">
+          <h3>Update Folder</h3>
+          <label for="foldertitle">Title</label>
+          <div class="create">
+            <input type="text" class="form-control" id="foldertitle" v-model="foldertitle">
+          </div>
+          <label for="foldercategory">Category</label>
+          <div class="create">
+            <input type="text" class="form-control" id="foldercategory" v-model="foldercategory">
+          </div>
+          <button @click="updateFolder(selectedFolder.ID)">Update</button>
+        </div>
       </ul>
         <button v-if="!selectedDocument && Object.keys(selectedFolder).length > 0" @click="goBack">Go Back</button>
       </ul>
@@ -342,6 +354,33 @@ export default {
           .catch(error => {
             console.error('Document deletion error:', error.message);
             alert('Failed to delete document. Please try again.')
+          });
+    },
+    async updateFolder(folderId) {
+      const body = {
+        title: this.foldertitle,
+        category: this.foldercategory,
+      };
+      await this.$http.post(`/docs/folders/${folderId}`, body)
+          .then(response => {
+            if(response.status === 200) { // OK
+              alert('Folder updated successfully.');
+              // Update the selectedFolder data property
+              this.selectedFolder = {
+                ...this.selectedFolder,
+                title: this.foldertitle,
+                category: this.foldercategory,
+              };
+              this.fetchData();
+              this.navigateToFolderDocuments(this.selectedFolder)
+            } else {
+              console.error('Unexpected status code: ', response.status);
+              alert('Failed to update folder. Please try again.')
+            }
+          })
+          .catch(error => {
+            console.error('Folder update error:', error.message);
+            alert('Failed to update folder. Please try again.')
           });
     },
     async navigateToFolderDocuments(folder) {
