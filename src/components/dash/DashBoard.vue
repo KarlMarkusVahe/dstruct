@@ -214,6 +214,10 @@ export default {
       if (this.selectedDocument) {
         return this.filteredDocuments.filter(document => document.ID === this.selectedDocument.ID);
       }
+      if (Object.keys(this.selectedFolder).length === 0) {
+        // If no folder is selected, filter out documents that don't have a "_ID"
+        return this.filteredDocuments.filter(document => document.FOLDER_ID === null);
+      }
       return this.filteredDocuments;
     },
     displayedFolders() {
@@ -409,6 +413,12 @@ export default {
           .then(response => {
             if(response.status === 200) { // OK
               alert('Document updated successfully.');
+              this.selectedDocument = {
+                ...this.selectedDocument,
+                title: this.documenttitle,
+                document_type: this.documenttype,
+                ID: documentId,
+              };
               this.fetchData();
               this.showDocumentDetails(this.selectedDocument);
             } else {
