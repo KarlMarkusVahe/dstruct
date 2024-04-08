@@ -9,6 +9,7 @@
           <option value="all">All</option>
           <option value="documents">Documents</option>
           <option value="folders">Folders</option>
+          <option value="students" v-if="canViewStudents">Students</option>
         </select>
       </div>
     <div>
@@ -79,6 +80,38 @@
         </div>
       </ul>
       </ul>
+      <ul v-if="filterType === 'students'">
+      <h2>Students</h2>
+      <ul>
+        <li v-for="student in students" :key="student.ID">
+          {{ student.EMAIL }}
+        </li>
+      </ul>
+      <h2>Add student</h2>
+      <div class="create-student">
+        <label for="studentEmail">Email</label>
+        <div class="create">
+          <input type="email" class="form-control" id="studentEmail" v-model="studentEmail">
+        </div>
+        <button @click="addStudent">Add Student</button>
+      </div>
+      <h2>Delete student</h2>
+      <div class="delete-student">
+        <label for="studentEmail">Email</label>
+        <div class="create">
+          <input type="email" class="form-control" id="studentEmail" v-model="studentEmail">
+        </div>
+        <button @click="deleteStudent">Delete Student</button>
+      </div>
+      <h2>Reset password</h2>
+      <div class="reset-password">
+        <label for="studentEmail">Email</label>
+        <div class="create">
+          <input type="email" class="form-control" id="studentEmail" v-model="studentEmail">
+        </div>
+        <button @click="resetPassword(studentEmail)">Reset Password</button>
+      </div>
+      </ul>
     </div>
   </div>
   <h2>Add folder</h2>
@@ -138,6 +171,8 @@ export default {
       readPrivilege: false,
       writePrivilege: false,
       deletePrivilege: false,
+      students: [],
+      canViewStudents: false,
     };
   },
   computed: {
@@ -173,6 +208,9 @@ export default {
         } else if ((filterType === 'documents' || filterType === 'all') && itemType === 'document' &&
             (searchQuery === '' || item.title.toLowerCase().includes(searchQuery.toLowerCase()))) {
           return true;
+        } else if ((filterType === 'students') && itemType === 'student' &&
+            (searchQuery === '' || item.email.toLowerCase().includes(searchQuery.toLowerCase()))) {
+          return true;
         }
         return false;
       });
@@ -185,6 +223,8 @@ export default {
           return 'Folders';
         case 'documents':
           return 'Documents';
+        case 'students':
+          return 'Students';
         default:
           return '';
       }
@@ -328,6 +368,71 @@ export default {
       this.selectedFolder = [];
       this.fetchData();
     },
+    async getStudents() {
+      await this.$http.get('/sessions/students')
+          .then(response => {
+            this.students = response.data;
+            console.log(this.students);
+            this.canViewStudents = true; // Add this line
+          })
+          .catch(error => {
+            console.error('Error fetching students:', error);
+            this.canViewStudents = false; // Add this line
+          });
+    },
+    async addStudent() {
+      const student = {
+        email: this.studentEmail,
+      };
+      await this.$http.post('/sessions/students', student)
+          .then(response => {
+            if(response.status === 201) { // Created
+              alert('Student added successfully. ' + response.data.message);
+              this.getStudents();
+            } else {
+              console.error('Unexpected status code: ', response.status);
+              alert('Failed to add student. Please try again.')
+            }
+          })
+          .catch(error => {
+            console.error('Student addition error:', error.message);
+            alert('Failed to add student. Please try again.')
+          });
+    },
+    async deleteStudent() {
+      const email = {
+        email: this.studentEmail,
+      };
+      await this.$http.delete('/sessions/students', { data: email })
+          .then(response => {
+            if(response.status === 200) { // OK
+              alert('Student deleted successfully.');
+              this.getStudents();
+            } else {
+              console.error('Unexpected status code: ', response.status);
+              alert('Failed to delete student. Please try again.')
+            }
+          })
+          .catch(error => {
+            console.error('Student deletion error:', error.message);
+            alert('Failed to delete student. Please try again.')
+          });
+    },
+    async resetPassword(email) {
+      await this.$http.post(`/sessions/students/${email}/reset-password`)
+          .then(response => {
+            if(response.status === 200) { // OK
+              alert('Password reset successful. ' + response.data.message);
+            } else {
+              console.error('Unexpected status code: ', response.status);
+              alert('Failed to reset password. Please try again.')
+            }
+          })
+          .catch(error => {
+            console.error('Password reset error:', error.message);
+            alert('Failed to reset password. Please try again.')
+          });
+    },
     async shareDocument(documentId) {
       console.log('Sharing document... ' + documentId);
       const privileges = {
@@ -393,6 +498,7 @@ export default {
     const isAuthenticated = localStorage.getItem('isAuthenticated');
     if (isAuthenticated === 'true') {
       await this.fetchData();
+      await this.getStudents();
     } else {
       console.error('User not logged in.');
       router.push('/login');
