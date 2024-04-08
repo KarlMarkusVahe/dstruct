@@ -25,6 +25,23 @@
           {{ folder.title }}
           <button @click="deleteFolder(folder.ID)">Delete</button>
         </li>
+        <div v-if="Object.keys(selectedFolder).length > 0" id="shareFolder" class="share-folder">
+          <h3>Share Folder</h3>
+          <input type="email" id="shareEmail" placeholder="Enter email address">
+          <div>
+            <input type="checkbox" id="readPrivilege" v-model="readPrivilege">
+            <label for="readPrivilege">Read</label>
+          </div>
+          <div>
+            <input type="checkbox" id="writePrivilege" v-model="writePrivilege">
+            <label for="writePrivilege">Write</label>
+          </div>
+          <div>
+            <input type="checkbox" id="deletePrivilege" v-model="deletePrivilege">
+            <label for="deletePrivilege">Delete</label>
+          </div>
+          <button @click="shareFolder(selectedFolder.ID)">Share</button>
+        </div>
       </ul>
         <button v-if="!selectedDocument && Object.keys(selectedFolder).length > 0" @click="goBack">Go Back</button>
       </ul>
@@ -34,14 +51,30 @@
         <li v-for="document in displayedDocuments" :key="document.ID" @click="showDocumentDetails(document)">
           {{ document.title }}
           <button v-if="selectedDocument && selectedDocument.ID === document.ID" @click="deleteDocument(document.ID)">Delete</button>
-          <button v-if="selectedDocument && selectedDocument.ID === document.ID" @click="shareDocument(document.ID)">Share</button>
         </li>
         <button v-if="selectedDocument" @click="clearSelectedDocument">Go Back</button>
-        <div id="documentDetails" class="document-details">
+        <div v-if="selectedDocument" id="documentDetails" class="document-details">
           <h3>Document Details</h3>
           <p><strong>Title:</strong> <span id="documentTitle"></span></p>
           <p><strong>Document Type:</strong> <span id="documentType"></span></p>
           <p><strong>ID:</strong> <span id="documentId"></span></p>
+        </div>
+        <div v-if="selectedDocument" id="shareDocument" class="share-document">
+          <h3>Share Document</h3>
+          <input type="email" id="shareEmail" placeholder="Enter email address">
+          <div>
+            <input type="checkbox" id="readPrivilege" v-model="readPrivilege">
+            <label for="readPrivilege">Read</label>
+          </div>
+          <div>
+            <input type="checkbox" id="writePrivilege" v-model="writePrivilege">
+            <label for="writePrivilege">Write</label>
+          </div>
+          <div>
+            <input type="checkbox" id="deletePrivilege" v-model="deletePrivilege">
+            <label for="deletePrivilege">Delete</label>
+          </div>
+          <button @click="shareDocument(selectedDocument.ID)">Share</button>
         </div>
       </ul>
       </ul>
@@ -101,6 +134,9 @@ export default {
       isLoading: true,
       selectedFolder: [],
       selectedDocument: null,
+      readPrivilege: false,
+      writePrivilege: false,
+      deletePrivilege: false,
     };
   },
   computed: {
@@ -272,6 +308,7 @@ export default {
       await this.$http.get(`/docs/folders/${folder.ID}/documents`)
           .then(response => {
             this.documents = response.data;
+            this.showDocumentDetails()
           })
           .catch(error => {
             console.error('Error fetching folder documents:', error);
@@ -291,9 +328,49 @@ export default {
       this.selectedFolder = [];
       this.fetchData();
     },
-    shareDocument(documentId) {
+    async shareDocument(documentId) {
       console.log('Sharing document... ' + documentId);
-      // Add your share logic here
+      const privileges = {
+        email: document.getElementById('shareEmail').value,
+        READ_PRIVILEGE: this.readPrivilege,
+        WRITE_PRIVILEGE: this.writePrivilege,
+        DELETE_PRIVILEGE: this.deletePrivilege,
+      };
+      await this.$http.put(`/docs/documents/${documentId}/share`, privileges)
+          .then(response => {
+            if(response.status === 200) { // OK
+              alert('Document shared successfully.');
+            } else {
+              console.error('Unexpected status code: ', response.status);
+              alert('Failed to share document. Please try again.')
+            }
+          })
+          .catch(error => {
+            console.error('Document sharing error:', error.message);
+            alert('Failed to share document. Please try again.')
+          });
+    },
+    async shareFolder(folderId) {
+      console.log('Sharing folder... ' + folderId);
+      const privileges = {
+        email: document.getElementById('shareEmail').value,
+        READ_PRIVILEGE: this.readPrivilege,
+        WRITE_PRIVILEGE: this.writePrivilege,
+        DELETE_PRIVILEGE: this.deletePrivilege,
+      };
+      await this.$http.put(`/docs/folders/${folderId}/share`, privileges)
+          .then(response => {
+            if(response.status === 200) { // OK
+              alert('Folder shared successfully.');
+            } else {
+              console.error('Unexpected status code: ', response.status);
+              alert('Failed to share folder. Please try again.')
+            }
+          })
+          .catch(error => {
+            console.error('Folder sharing error:', error.message);
+            alert('Failed to share folder. Please try again.')
+          });
     },
     async logout() {
       await this.$http.delete('/sessions')
@@ -403,6 +480,19 @@ export default {
 
 .dashboard-container h2 {
   font-size: 24px;
+  color: var(--input-text);
+  margin-bottom: 10px;
+}
+
+.dashboard-container h3 {
+  margin-top: 8px;
+  font-size: 16px;
+  color: var(--input-text);
+  margin-bottom: 10px;
+}
+
+.dashboard-container label {
+  font-size: 12px;
   color: var(--input-text);
   margin-bottom: 10px;
 }
