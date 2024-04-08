@@ -19,10 +19,10 @@
       <h2 v-if="!selectedDocument">Folders</h2>
       <ul>
         <div v-if="Object.keys(selectedFolder).length > 0">
-          <h2>Current Folder: {{ selectedFolder.TITLE }}</h2>
+          <h2>Current Folder: {{ selectedFolder.title }}</h2>
         </div>
         <li v-for="folder in displayedFolders" :key="folder.ID" @click="navigateToFolderDocuments(folder)">
-          {{ folder.TITLE }}
+          {{ folder.title }}
           <button @click="deleteFolder(folder.ID)">Delete</button>
         </li>
       </ul>
@@ -32,8 +32,9 @@
       <h2>Documents</h2>
       <ul>
         <li v-for="document in displayedDocuments" :key="document.ID" @click="showDocumentDetails(document)">
-          {{ document.TITLE }}
-          <button @click="deleteDocument(document.ID)">Delete</button>
+          {{ document.title }}
+          <button v-if="selectedDocument && selectedDocument.ID === document.ID" @click="deleteDocument(document.ID)">Delete</button>
+          <button v-if="selectedDocument && selectedDocument.ID === document.ID" @click="shareDocument(document.ID)">Share</button>
         </li>
         <button v-if="selectedDocument" @click="clearSelectedDocument">Go Back</button>
         <div id="documentDetails" class="document-details">
@@ -127,13 +128,13 @@ export default {
     filterItems(items, searchQuery, filterType, itemType) {
       return items.filter(item => {
         if ((filterType === 'all' || filterType === itemType) &&
-            (searchQuery === '' || item.TITLE.toLowerCase().includes(searchQuery.toLowerCase()))) {
+            (searchQuery === '' || item.title.toLowerCase().includes(searchQuery.toLowerCase()))) {
           return true;
         } else if ((filterType === 'folders' || filterType === 'all') && itemType === 'folder' &&
-            (searchQuery === '' || item.TITLE.toLowerCase().includes(searchQuery.toLowerCase()))) {
+            (searchQuery === '' || item.title.toLowerCase().includes(searchQuery.toLowerCase()))) {
           return true;
         } else if ((filterType === 'documents' || filterType === 'all') && itemType === 'document' &&
-            (searchQuery === '' || item.TITLE.toLowerCase().includes(searchQuery.toLowerCase()))) {
+            (searchQuery === '' || item.title.toLowerCase().includes(searchQuery.toLowerCase()))) {
           return true;
         }
         return false;
@@ -156,10 +157,11 @@ export default {
       this.$http.get('/docs/folders')
           .then(response => {
             // Only get the root folders (folders with no parent)
-            this.folders = response.data.data.filter(folder => !folder._ID);
+            this.folders = response.data.filter(folder => !folder._ID);
+            console.log(this.folders);
             this.$http.get('/docs/documents')
                 .then(response => {
-                  this.documents = response.data.data;
+                  this.documents = response.data;
                   console.log(this.documents);
                 })
                 .catch(error => {
@@ -179,7 +181,7 @@ export default {
       const documentId = document.getElementById('documentId');
 
       // Display document details in the UI
-      documentTitle.textContent = this.selectedDocument.TITLE;
+      documentTitle.textContent = this.selectedDocument.title;
       documentType.textContent = this.selectedDocument.document_type;
       documentId.textContent = this.selectedDocument.ID;
 
@@ -216,7 +218,7 @@ export default {
       const document = {
         title: this.documenttitle,
         document_type: this.documenttype,
-        folder_id: this.document_fid,
+        FOLDER_ID: this.document_fid,
       };
       await this.$http.put('/docs/documents', document)
           .then(response => {
@@ -236,7 +238,7 @@ export default {
     async deleteFolder(folderId) {
       await this.$http.delete(`/docs/folders/${folderId}`)
           .then(response => {
-            if(response.status === 200) { // OK
+            if(response.status === 204) { // OK
               alert('Folder deleted successfully.');
               this.fetchData();
             } else {
@@ -252,7 +254,7 @@ export default {
     async deleteDocument(documentId) {
       await this.$http.delete(`/docs/documents/${documentId}`)
           .then(response => {
-            if(response.status === 200) { // OK
+            if(response.status === 204) { // OK
               alert('Document deleted successfully.');
               this.fetchData();
             } else {
@@ -269,7 +271,7 @@ export default {
       this.selectedFolder = folder;
       await this.$http.get(`/docs/folders/${folder.ID}/documents`)
           .then(response => {
-            this.documents = response.data.data;
+            this.documents = response.data;
           })
           .catch(error => {
             console.error('Error fetching folder documents:', error);
@@ -278,7 +280,7 @@ export default {
       await this.$http.get(`/docs/folders`)
           .then(response => {
             // Filter the subfolders of the selected folder
-            this.folders = response.data.data.filter(subfolder => subfolder._ID === folder.ID);
+            this.folders = response.data.filter(subfolder => subfolder._ID === folder.ID);
           })
           .catch(error => {
             console.error('Error fetching subfolders:', error);
@@ -288,6 +290,10 @@ export default {
       // Clear selected folder and fetch all folders again
       this.selectedFolder = [];
       this.fetchData();
+    },
+    shareDocument(documentId) {
+      console.log('Sharing document... ' + documentId);
+      // Add your share logic here
     },
     async logout() {
       await this.$http.delete('/sessions')
