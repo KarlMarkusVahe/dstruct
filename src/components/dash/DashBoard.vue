@@ -20,10 +20,11 @@
       <ul>
         <div v-if="Object.keys(selectedFolder).length > 0">
           <h2>Current Folder: {{ selectedFolder.title }}</h2>
+          <h2>Current Folder ID: {{ selectedFolder.ID }}</h2>
+          <button @click="deleteFolder(selectedFolder.ID)">Delete</button>
         </div>
         <li v-for="folder in displayedFolders" :key="folder.ID" @click="navigateToFolderDocuments(folder)">
           {{ folder.title }}
-          <button @click="deleteFolder(folder.ID)">Delete</button>
         </li>
         <div v-if="Object.keys(selectedFolder).length > 0" id="shareFolder" class="share-folder">
           <h3>Share Folder</h3>
@@ -274,7 +275,7 @@ export default {
     async deleteFolder(folderId) {
       await this.$http.delete(`/docs/folders/${folderId}`)
           .then(response => {
-            if(response.status === 204) { // OK
+            if(response.status === 200) { // OK
               alert('Folder deleted successfully.');
               this.fetchData();
             } else {
@@ -290,7 +291,7 @@ export default {
     async deleteDocument(documentId) {
       await this.$http.delete(`/docs/documents/${documentId}`)
           .then(response => {
-            if(response.status === 204) { // OK
+            if(response.status === 200) { // OK
               alert('Document deleted successfully.');
               this.fetchData();
             } else {
@@ -308,7 +309,6 @@ export default {
       await this.$http.get(`/docs/folders/${folder.ID}/documents`)
           .then(response => {
             this.documents = response.data;
-            this.showDocumentDetails()
           })
           .catch(error => {
             console.error('Error fetching folder documents:', error);
@@ -404,6 +404,16 @@ export default {
     },
     filterType() {
 
+    },
+
+    selectedFolder: {
+      handler(newVal) {
+        if (newVal && newVal.ID) {
+          this.document_fid = newVal.ID;
+          this.folder_ID = newVal.ID;
+        }
+      },
+      deep: true,
     },
   }
 };
